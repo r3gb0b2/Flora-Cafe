@@ -1,5 +1,6 @@
-// FIX: Changed to a namespace import to solve module resolution errors.
-import * as firebaseApp from "firebase/app";
+
+// FIX: Switched to named imports for Firebase v9+ modular SDK to resolve 'does not exist on type' errors.
+import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
 // --- ATENÇÃO: AÇÃO NECESSÁRIA ---
@@ -20,8 +21,8 @@ const firebaseConfig = {
 
 
 // Inicializa o Firebase usando a sintaxe modular v9, evitando reinicializações.
-// FIX: Use functions from the namespace import to fix the module resolution error.
-const app = firebaseApp.getApps().length === 0 ? firebaseApp.initializeApp(firebaseConfig) : firebaseApp.getApp();
+// FIX: Call the imported functions directly, as required by the Firebase v9+ modular SDK, instead of as methods on a namespace.
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
 // Obtém uma referência para o serviço do Firestore.
 const db = getFirestore(app);

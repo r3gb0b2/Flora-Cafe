@@ -9,6 +9,7 @@ import {
     deleteDoc, 
     writeBatch, 
     runTransaction,
+    Timestamp,
 } from 'firebase/firestore';
 import type { QuerySnapshot, QueryDocumentSnapshot } from 'firebase/firestore';
 import { INITIAL_PRODUCTS, INITIAL_STAFF, INITIAL_TABLES } from '../constants';
@@ -127,7 +128,13 @@ export const updateTableStatus = async (tableId: string, status: CafeTable['stat
 export const getSales = async (): Promise<Sale[]> => {
     const salesCollection = collection(db, collections.sales);
     const snapshot = await getDocs(salesCollection);
-    return snapshotToArray<Sale>(snapshot);
+    const salesData = snapshotToArray<any>(snapshot); // Use 'any' to handle the raw Firestore data
+    
+    // Convert Firestore Timestamps to ISO strings to prevent runtime errors
+    return salesData.map((sale: any) => ({
+        ...sale,
+        date: sale.date instanceof Timestamp ? sale.date.toDate().toISOString() : sale.date,
+    })) as Sale[];
 };
 
 export const addSale = async (saleData: Omit<Sale, 'id' | 'date' | 'total'>): Promise<Sale> => {
