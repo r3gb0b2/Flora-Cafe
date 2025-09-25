@@ -1,5 +1,4 @@
 import { db } from './firebase';
-// Fix: Updated Firebase import to use the scoped package for consistency.
 import { 
     collection, 
     getDocs, 
@@ -11,8 +10,8 @@ import {
     writeBatch, 
     runTransaction,
     Timestamp,
-} from '@firebase/firestore';
-import type { QuerySnapshot, QueryDocumentSnapshot } from '@firebase/firestore';
+} from 'firebase/firestore';
+import type { QuerySnapshot, QueryDocumentSnapshot } from 'firebase/firestore';
 import { INITIAL_PRODUCTS, INITIAL_STAFF, INITIAL_TABLES } from '../constants';
 import type { Product, StaffMember, CafeTable, Sale, OrderItem } from '../types';
 

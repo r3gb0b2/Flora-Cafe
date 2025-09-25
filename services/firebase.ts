@@ -1,6 +1,8 @@
-// Fix: Updated Firebase imports to use scoped packages to resolve module resolution errors.
-import { initializeApp, getApps, getApp } from '@firebase/app';
-import { getFirestore } from '@firebase/firestore';
+// FIX: Use Firebase v8 compat layer for app initialization to resolve import errors.
+// This is often necessary in projects with mixed or older Firebase dependencies.
+import firebase from 'firebase/compat/app';
+import 'firebase/compat/firestore';
+import { getFirestore } from 'firebase/firestore';
 
 // --- ATENÇÃO: AÇÃO NECESSÁRIA ---
 // 1. Crie um projeto no Firebase: https://console.firebase.google.com/
@@ -10,16 +12,17 @@ import { getFirestore } from '@firebase/firestore';
 // 5. Vá para "Firestore Database" no menu à esquerda, crie um banco de dados e, em "Regras", 
 //    configure para permitir leitura/escrita (para testes, use `allow read, write: if true;`).
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyDDNIBRwvoP9TzfBUdEKQMgYiMLIUotoWU",
+  authDomain: "flora-4b14c.firebaseapp.com",
+  projectId: "flora-4b14c",
+  storageBucket: "flora-4b14c.firebasestorage.app",
+  messagingSenderId: "356514736805",
+  appId: "1:356514736805:web:95c8230cc27d1b857a7b4c"
 };
 
-// Inicializa o Firebase de forma segura, evitando reinicialização.
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+
+// Inicializa o Firebase de forma segura, evitando reinicialização, usando a API de compatibilidade.
+const app = firebase.apps.length === 0 ? firebase.initializeApp(firebaseConfig) : firebase.app();
 
 // Obtém uma referência para o serviço do Firestore.
 const db = getFirestore(app);
