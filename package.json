@@ -13,7 +13,8 @@
     "lucide-react": "0.303.0",
     "recharts": "2.10.3",
     "react-dom": "^19.1.1",
-    "firebase": "^12.3.0"
+    "@firebase/firestore": "^4.9.2",
+    "@firebase/app": "^0.14.3"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
