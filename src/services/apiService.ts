@@ -1,4 +1,3 @@
-
 import { db } from './firebase';
 import {
   collection,
@@ -73,10 +72,9 @@ export const getProducts = async (): Promise<Product[]> => {
 };
 
 export const addProduct = async (product: Omit<Product, 'id'>): Promise<Product> => {
-    const docRef = doc(collection(db, collections.products));
-    const newProduct = { ...product, id: docRef.id };
-    await setDoc(docRef, newProduct);
-    return newProduct;
+    const productsCollection = collection(db, collections.products);
+    const docRef = await addDoc(productsCollection, product);
+    return { ...product, id: docRef.id };
 };
 
 export const updateProduct = async (updatedProduct: Product): Promise<Product> => {
@@ -99,10 +97,9 @@ export const getStaff = async (): Promise<StaffMember[]> => {
 };
 
 export const addStaff = async (staff: Omit<StaffMember, 'id'>): Promise<StaffMember> => {
-    const docRef = doc(collection(db, collections.staff));
-    const newStaff = { ...staff, id: docRef.id };
-    await setDoc(docRef, newStaff);
-    return newStaff;
+    const staffCollection = collection(db, collections.staff);
+    const docRef = await addDoc(staffCollection, staff);
+    return { ...staff, id: docRef.id };
 };
 
 export const updateStaff = async (updatedStaff: StaffMember): Promise<StaffMember> => {
@@ -135,8 +132,10 @@ export const getSales = async (): Promise<Sale[]> => {
     const snapshot = await getDocs(salesCollection);
     const salesData = snapshotToArray<any>(snapshot); // Use 'any' to handle the raw Firestore data
     
-    // Convert Firestore Timestamps to ISO strings to prevent runtime errors
-    return salesData.map((sale: any) => ({
+    // Convert Firestore Timestamps to ISO strings and filter out invalid data
+    return salesData
+      .filter(sale => sale && sale.date) // Safety check for sales without a date
+      .map((sale: any) => ({
         ...sale,
         date: sale.date instanceof Timestamp ? sale.date.toDate().toISOString() : sale.date,
     })) as Sale[];

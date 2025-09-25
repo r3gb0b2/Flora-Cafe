@@ -1,10 +1,10 @@
-// FIX: Use Firebase compat library to ensure proper initialization across different build environments.
+// FIX: Use Firebase compat library to resolve module import errors.
+// The modular API was failing to import `initializeApp`, `getApps`, and `getApp`.
+// Using the compat layer for initialization works around this while the rest of the app can use the modular API.
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/firestore';
 import { getFirestore } from 'firebase/firestore';
 
-// ATENÇÃO: Substitua este objeto pelas credenciais reais do seu projeto Firebase.
-// Estas são credenciais de exemplo e não funcionarão em produção.
 const firebaseConfig = {
   apiKey: "AIzaSyDDNIBRwvoP9TzfBUdEKQMgYiMLIUotoWU",
   authDomain: "flora-4b14c.firebaseapp.com",
@@ -14,10 +14,9 @@ const firebaseConfig = {
   appId: "1:356514736805:web:95c8230cc27d1b857a7b4c"
 };
 
-// Inicializa o Firebase
-const app = firebase.initializeApp(firebaseConfig);
+// Inicializa o Firebase, prevenindo reinicialização em ambientes de desenvolvimento
+const app = !firebase.apps.length ? firebase.initializeApp(firebaseConfig) : firebase.app();
 
-// Obtém uma referência ao serviço Firestore.
 const db = getFirestore(app);
 
 export { db };
