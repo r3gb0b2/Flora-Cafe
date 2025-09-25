@@ -10,12 +10,12 @@ import { getFirestore } from "firebase/firestore";
 // 5. Vá para "Firestore Database" no menu à esquerda, crie um banco de dados e, em "Regras", 
 //    configure para permitir leitura/escrita (para testes, use `allow read, write: if true;`).
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY", // SUBSTITUA com sua chave
-  authDomain: "your-project-id.firebaseapp.com", // SUBSTITUA com seu domínio
-  projectId: "your-project-id", // SUBSTITUA com seu ID de projeto
-  storageBucket: "your-project-id.appspot.com", // SUBSTITUA com seu bucket
-  messagingSenderId: "your-sender-id", // SUBSTITUA com seu ID de remetente
-  appId: "your-app-id", // SUBSTITUA com seu ID de aplicativo
+  apiKey: "AIzaSyDDNIBRwvoP9TzfBUdEKQMgYiMLIUotoWU",
+  authDomain: "flora-4b14c.firebaseapp.com",
+  projectId: "flora-4b14c",
+  storageBucket: "flora-4b14c.firebasestorage.app",
+  messagingSenderId: "356514736805",
+  appId: "1:356514736805:web:95c8230cc27d1b857a7b4c"
 };
 
 
