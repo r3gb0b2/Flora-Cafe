@@ -1,8 +1,7 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { getProducts, getTables, getStaff, addSale } from '../services/apiService';
 import type { Product, CafeTable, StaffMember, OrderItem } from '../types';
-import { PlusCircle, MinusCircle, Trash2, Search, X, CheckCircle } from 'lucide-react';
+import { PlusCircle, MinusCircle, Trash2, Search, X, CheckCircle, Loader2 } from 'lucide-react';
 
 const POS: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -14,16 +13,22 @@ const POS: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Todos');
   const [notification, setNotification] = useState('');
+  const [isFinalizing, setIsFinalizing] = useState(false);
+
+  const fetchData = useCallback(async () => {
+    const [productsData, tablesData, staffData] = await Promise.all([
+      getProducts(),
+      getTables(),
+      getStaff(),
+    ]);
+    setProducts(productsData);
+    setTables(tablesData);
+    setStaff(staffData);
+  }, []);
 
   useEffect(() => {
     fetchData();
-  }, []);
-  
-  const fetchData = () => {
-    setProducts(getProducts());
-    setTables(getTables());
-    setStaff(getStaff());
-  };
+  }, [fetchData]);
 
   const categories = ['Todos', ...new Set(products.map(p => p.category))];
 
@@ -79,8 +84,7 @@ const POS: React.FC = () => {
   };
 
   const orderTotal = orderItems.reduce((acc, item) => {
-    const product = products.find(p => p.id === item.productId);
-    return acc + (product ? product.price * item.quantity : 0);
+    return acc + (item.priceAtSale * item.quantity);
   }, 0);
 
   const showNotification = (message: string) => {
@@ -88,13 +92,14 @@ const POS: React.FC = () => {
     setTimeout(() => setNotification(''), 3000);
   };
 
-  const finalizeSale = () => {
+  const finalizeSale = async () => {
     if (!selectedTable || !selectedStaff || orderItems.length === 0) {
       showNotification("Por favor, selecione uma mesa, um atendente e adicione itens ao pedido.");
       return;
     }
+    setIsFinalizing(true);
     try {
-      addSale({
+      await addSale({
         tableId: selectedTable,
         staffId: selectedStaff,
         items: orderItems,
@@ -110,20 +115,22 @@ const POS: React.FC = () => {
       } else {
         showNotification(`Erro ao finalizar a venda.`);
       }
+    } finally {
+      setIsFinalizing(false);
     }
   };
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] gap-6">
+    <div className="flex flex-col lg:flex-row h-full lg:h-[calc(100vh-6rem)] gap-6">
       {notification && (
         <div className="fixed top-5 right-5 bg-green-500 text-white py-2 px-4 rounded-lg shadow-lg flex items-center z-50">
           <CheckCircle className="mr-2" /> {notification}
         </div>
       )}
       {/* Left side: Product Selection */}
-      <div className="w-2/3 bg-white p-6 rounded-xl shadow-md flex flex-col">
+      <div className="w-full lg:w-2/3 bg-white p-4 sm:p-6 rounded-xl shadow-md flex flex-col">
         <h2 className="text-2xl font-bold text-gray-800 mb-4">Produtos</h2>
-        <div className="flex gap-4 mb-4">
+        <div className="flex flex-col sm:flex-row gap-4 mb-4">
           <div className="relative flex-grow">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
             <input 
@@ -143,19 +150,21 @@ const POS: React.FC = () => {
           </select>
         </div>
         <div className="flex-1 overflow-y-auto pr-2">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {filteredProducts.map(product => (
               <button 
                 key={product.id}
                 onClick={() => addToOrder(product)}
-                className="bg-gray-50 border rounded-lg p-3 text-center hover:shadow-lg hover:border-amber-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="bg-gray-50 border rounded-lg p-3 text-center hover:shadow-lg hover:border-amber-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex flex-col justify-between"
                 disabled={product.stock <= 0}
               >
                 <p className="font-semibold text-gray-700 truncate">{product.name}</p>
-                <p className="text-sm text-gray-500">R$ {product.price.toFixed(2)}</p>
-                <p className={`text-xs ${product.stock > 5 ? 'text-green-600' : 'text-red-600'}`}>
-                  {product.stock} em estoque
-                </p>
+                <div>
+                  <p className="text-sm text-gray-500">R$ {product.price.toFixed(2)}</p>
+                  <p className={`text-xs ${product.stock > 5 ? 'text-green-600' : 'text-red-600'}`}>
+                    {product.stock} em estoque
+                  </p>
+                </div>
               </button>
             ))}
           </div>
@@ -163,14 +172,14 @@ const POS: React.FC = () => {
       </div>
 
       {/* Right side: Current Order */}
-      <div className="w-1/3 bg-white p-6 rounded-xl shadow-md flex flex-col">
+      <div className="w-full lg:w-1/3 bg-white p-4 sm:p-6 rounded-xl shadow-md flex flex-col">
         <h2 className="text-2xl font-bold text-gray-800 mb-4">Pedido Atual</h2>
-        <div className="flex gap-4 mb-4">
-          <select value={selectedTable} onChange={(e) => setSelectedTable(e.target.value)} className="w-1/2 p-2 border rounded-lg">
+        <div className="flex flex-col sm:flex-row gap-4 mb-4">
+          <select value={selectedTable} onChange={(e) => setSelectedTable(e.target.value)} className="w-full sm:w-1/2 p-2 border rounded-lg">
             <option value="">Selecione a Mesa</option>
             {tables.filter(t => t.status !== 'reserved').map(table => <option key={table.id} value={table.id}>{table.name} ({table.status})</option>)}
           </select>
-          <select value={selectedStaff} onChange={(e) => setSelectedStaff(e.target.value)} className="w-1/2 p-2 border rounded-lg">
+          <select value={selectedStaff} onChange={(e) => setSelectedStaff(e.target.value)} className="w-full sm:w-1/2 p-2 border rounded-lg">
             <option value="">Selecione o Atendente</option>
             {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
@@ -202,10 +211,11 @@ const POS: React.FC = () => {
           </div>
           <button 
             onClick={finalizeSale}
-            disabled={!selectedTable || !selectedStaff || orderItems.length === 0}
-            className="w-full mt-4 bg-amber-800 text-white py-3 rounded-lg font-bold hover:bg-amber-900 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+            disabled={!selectedTable || !selectedStaff || orderItems.length === 0 || isFinalizing}
+            className="w-full mt-4 bg-amber-800 text-white py-3 rounded-lg font-bold hover:bg-amber-900 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center"
           >
-            Finalizar Venda
+            {isFinalizing && <Loader2 className="animate-spin mr-2" />}
+            {isFinalizing ? 'Finalizando...' : 'Finalizar Venda'}
           </button>
         </div>
       </div>

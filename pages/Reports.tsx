@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { getSales, getProducts, getStaff } from '../services/apiService';
 import { exportToPDF } from '../services/pdfService';
@@ -6,6 +5,12 @@ import type { Sale, Product, StaffMember } from '../types';
 import { Download } from 'lucide-react';
 
 type Tab = 'sales' | 'inventory' | 'commissions';
+
+const Loader: React.FC = () => (
+    <div className="flex justify-center items-center py-20">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-800"></div>
+    </div>
+);
 
 const Reports: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('sales');
@@ -29,7 +34,7 @@ const Reports: React.FC = () => {
     <div>
       <h1 className="text-3xl font-bold text-gray-800 mb-6">Relatórios</h1>
       <div className="mb-6 border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+        <nav className="-mb-px flex space-x-8 overflow-x-auto" aria-label="Tabs">
           {tabs.map(tab => (
             <button
                 key={tab.id}
@@ -38,7 +43,7 @@ const Reports: React.FC = () => {
                     activeTab === tab.id
                     ? 'border-amber-700 text-amber-800'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
             >
                 {tab.label}
             </button>
@@ -55,11 +60,22 @@ const SalesReports: React.FC = () => {
   const [sales, setSales] = useState<Sale[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [staff, setStaff] = useState<StaffMember[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setSales(getSales());
-    setProducts(getProducts());
-    setStaff(getStaff());
+    const fetchData = async () => {
+        setLoading(true);
+        const [salesData, productsData, staffData] = await Promise.all([
+            getSales(),
+            getProducts(),
+            getStaff()
+        ]);
+        setSales(salesData);
+        setProducts(productsData);
+        setStaff(staffData);
+        setLoading(false);
+    };
+    fetchData();
   }, []);
   
   const getProductName = (id: string) => products.find(p => p.id === id)?.name || 'N/A';
@@ -77,35 +93,35 @@ const SalesReports: React.FC = () => {
   };
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-md">
-       <div className="flex justify-between items-center mb-4">
+    <div className="bg-white p-4 sm:p-6 rounded-xl shadow-md">
+       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
         <h2 className="text-xl font-semibold text-gray-700">Todas as Vendas</h2>
         <button onClick={handleExport} className="flex items-center bg-blue-600 text-white px-3 py-2 text-sm rounded-lg font-semibold hover:bg-blue-700 transition-colors">
             <Download size={16} className="mr-2" /> Exportar PDF
         </button>
       </div>
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead>
-          <tr>
-            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
-            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Atendente</th>
-            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
-            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Itens</th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {sales.map(sale => (
-            <tr key={sale.id}>
-              <td className="px-4 py-2 text-sm text-gray-600">{new Date(sale.date).toLocaleString('pt-BR')}</td>
-              <td className="px-4 py-2 text-sm text-gray-600">{getStaffName(sale.staffId)}</td>
-              <td className="px-4 py-2 text-sm font-semibold text-gray-800">R$ {sale.total.toFixed(2)}</td>
-              <td className="px-4 py-2 text-sm text-gray-600">
-                {sale.items.map(item => `${item.quantity}x ${getProductName(item.productId)}`).join(', ')}
-              </td>
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead>
+            <tr>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Atendente</th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
+              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Itens</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {loading ? <tr><td colSpan={4}><Loader /></td></tr> : sales.map(sale => (
+              <tr key={sale.id}>
+                <td className="px-4 py-2 text-sm text-gray-600 whitespace-nowrap">{new Date(sale.date).toLocaleString('pt-BR')}</td>
+                <td className="px-4 py-2 text-sm text-gray-600">{getStaffName(sale.staffId)}</td>
+                <td className="px-4 py-2 text-sm font-semibold text-gray-800">R$ {sale.total.toFixed(2)}</td>
+                <td className="px-4 py-2 text-sm text-gray-600">{sale.items.map(item => `${item.quantity}x ${getProductName(item.productId)}`).join(', ')}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
@@ -114,10 +130,17 @@ const SalesReports: React.FC = () => {
 const InventoryReports: React.FC = () => {
     const [products, setProducts] = useState<Product[]>([]);
     const [sales, setSales] = useState<Sale[]>([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        setProducts(getProducts());
-        setSales(getSales());
+        const fetchData = async () => {
+            setLoading(true);
+            const [productsData, salesData] = await Promise.all([getProducts(), getSales()]);
+            setProducts(productsData);
+            setSales(salesData);
+            setLoading(false);
+        }
+        fetchData();
     }, []);
 
     const productSales = products.map(product => {
@@ -141,31 +164,33 @@ const InventoryReports: React.FC = () => {
     };
 
     return (
-      <div className="bg-white p-6 rounded-xl shadow-md">
-        <div className="flex justify-between items-center mb-4">
+      <div className="bg-white p-4 sm:p-6 rounded-xl shadow-md">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
           <h2 className="text-xl font-semibold text-gray-700">Saída de Estoque</h2>
           <button onClick={handleExport} className="flex items-center bg-blue-600 text-white px-3 py-2 text-sm rounded-lg font-semibold hover:bg-blue-700 transition-colors">
             <Download size={16} className="mr-2" /> Exportar PDF
           </button>
         </div>
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead>
-            <tr>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Produto</th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Unidades Vendidas</th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Estoque Atual</th>
-            </tr>
-          </thead>
-          <tbody>
-            {productSales.sort((a,b) => b.unitsSold - a.unitsSold).map(p => (
-              <tr key={p.id}>
-                <td className="px-4 py-2 text-sm font-semibold text-gray-800">{p.name}</td>
-                <td className="px-4 py-2 text-sm text-gray-600">{p.unitsSold}</td>
-                <td className="px-4 py-2 text-sm text-gray-600">{p.stock}</td>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead>
+              <tr>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Produto</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Unidades Vendidas</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Estoque Atual</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {loading ? <tr><td colSpan={3}><Loader /></td></tr> : productSales.sort((a,b) => b.unitsSold - a.unitsSold).map(p => (
+                <tr key={p.id}>
+                  <td className="px-4 py-2 text-sm font-semibold text-gray-800">{p.name}</td>
+                  <td className="px-4 py-2 text-sm text-gray-600">{p.unitsSold}</td>
+                  <td className="px-4 py-2 text-sm text-gray-600">{p.stock}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     );
 };
@@ -175,10 +200,17 @@ const CommissionReports: React.FC = () => {
     const [staff, setStaff] = useState<StaffMember[]>([]);
     const [sales, setSales] = useState<Sale[]>([]);
     const [selectedStaff, setSelectedStaff] = useState<string>('all');
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        setStaff(getStaff());
-        setSales(getSales());
+        const fetchData = async () => {
+            setLoading(true);
+            const [staffData, salesData] = await Promise.all([getStaff(), getSales()]);
+            setStaff(staffData);
+            setSales(salesData);
+            setLoading(false);
+        }
+        fetchData();
     }, []);
 
     const staffWithSales = staff.map(s => {
@@ -209,37 +241,39 @@ const CommissionReports: React.FC = () => {
     };
 
     return (
-      <div className="bg-white p-6 rounded-xl shadow-md">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-gray-700">Comissões dos Atendentes</h2>
-          <div className="flex items-center gap-4">
-            <select value={selectedStaff} onChange={e => setSelectedStaff(e.target.value)} className="p-2 border rounded-lg">
+      <div className="bg-white p-4 sm:p-6 rounded-xl shadow-md">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
+          <h2 className="text-xl font-semibold text-gray-700">Comissões</h2>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto">
+            <select value={selectedStaff} onChange={e => setSelectedStaff(e.target.value)} className="p-2 border rounded-lg w-full sm:w-auto">
                 <option value="all">Todos os Atendentes</option>
                 {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
-            <button onClick={handleExport} className="flex items-center bg-blue-600 text-white px-3 py-2 text-sm rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+            <button onClick={handleExport} className="flex items-center justify-center bg-blue-600 text-white px-3 py-2 text-sm rounded-lg font-semibold hover:bg-blue-700 transition-colors">
               <Download size={16} className="mr-2" /> Exportar PDF
             </button>
           </div>
         </div>
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead>
-            <tr>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Atendente</th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total Vendido</th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Comissão</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredStaff.map(s => (
-              <tr key={s.id}>
-                <td className="px-4 py-2 text-sm font-semibold text-gray-800">{s.name}</td>
-                <td className="px-4 py-2 text-sm text-gray-600">R$ {s.totalSold.toFixed(2)}</td>
-                <td className="px-4 py-2 text-sm font-bold text-green-700">R$ {s.commission.toFixed(2)} ({s.commissionRate}%)</td>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead>
+              <tr>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Atendente</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Total Vendido</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Comissão</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {loading ? <tr><td colSpan={3}><Loader /></td></tr> : filteredStaff.map(s => (
+                <tr key={s.id}>
+                  <td className="px-4 py-2 text-sm font-semibold text-gray-800">{s.name}</td>
+                  <td className="px-4 py-2 text-sm text-gray-600">R$ {s.totalSold.toFixed(2)}</td>
+                  <td className="px-4 py-2 text-sm font-bold text-green-700">R$ {s.commission.toFixed(2)} ({s.commissionRate}%)</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     );
 };

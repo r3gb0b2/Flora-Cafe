@@ -1,9 +1,14 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { getTables, updateTableStatus } from '../services/apiService';
 import type { CafeTable } from '../types';
 import { Utensils, CheckCircle, Clock } from 'lucide-react';
 import Modal from '../components/Modal';
+
+const Loader: React.FC = () => (
+  <div className="flex justify-center items-center py-20">
+    <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-amber-800"></div>
+  </div>
+);
 
 const TableCard: React.FC<{ table: CafeTable, onUpdate: () => void }> = ({ table, onUpdate }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -35,8 +40,8 @@ const TableCard: React.FC<{ table: CafeTable, onUpdate: () => void }> = ({ table
 
   const currentStatus = statusConfig[table.status];
   
-  const handleStatusChange = () => {
-    updateTableStatus(table.id, newStatus, newStatus === 'occupied' ? `temp-order-${Date.now()}` : null);
+  const handleStatusChange = async () => {
+    await updateTableStatus(table.id, newStatus, newStatus === 'occupied' ? `temp-order-${Date.now()}` : null);
     onUpdate();
     setIsModalOpen(false);
   };
@@ -94,9 +99,13 @@ const TableCard: React.FC<{ table: CafeTable, onUpdate: () => void }> = ({ table
 
 const Tables: React.FC = () => {
   const [tables, setTables] = useState<CafeTable[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const fetchTables = useCallback(() => {
-    setTables(getTables());
+  const fetchTables = useCallback(async () => {
+    setLoading(true);
+    const tablesData = await getTables();
+    setTables(tablesData);
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -106,11 +115,13 @@ const Tables: React.FC = () => {
   return (
     <div>
       <h1 className="text-3xl font-bold text-gray-800 mb-6">Gerenciamento de Mesas</h1>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {tables.map(table => (
-          <TableCard key={table.id} table={table} onUpdate={fetchTables} />
-        ))}
-      </div>
+      {loading ? <Loader /> : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {tables.map(table => (
+            <TableCard key={table.id} table={table} onUpdate={fetchTables} />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

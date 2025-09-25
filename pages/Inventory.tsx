@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { getProducts, addProduct, updateProduct, deleteProduct } from '../services/apiService';
 import type { Product } from '../types';
@@ -10,9 +9,12 @@ const Inventory: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [formState, setFormState] = useState({ name: '', category: '', price: '0', stock: '0' });
+  const [loading, setLoading] = useState(true);
 
-  const fetchProducts = useCallback(() => {
-    setProducts(getProducts());
+  const fetchProducts = useCallback(async () => {
+    setLoading(true);
+    setProducts(await getProducts());
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -44,7 +46,7 @@ const Inventory: React.FC = () => {
     setFormState(prevState => ({ ...prevState, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const productData = {
       name: formState.name,
@@ -54,32 +56,32 @@ const Inventory: React.FC = () => {
     };
 
     if (editingProduct) {
-      updateProduct({ ...editingProduct, ...productData });
+      await updateProduct({ ...editingProduct, ...productData });
     } else {
-      addProduct(productData);
+      await addProduct(productData);
     }
     fetchProducts();
     handleCloseModal();
   };
 
-  const handleDelete = (productId: string) => {
+  const handleDelete = async (productId: string) => {
     if (window.confirm('Tem certeza que deseja excluir este produto?')) {
-      deleteProduct(productId);
+      await deleteProduct(productId);
       fetchProducts();
     }
   };
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Estoque de Produtos</h1>
-        <button onClick={() => handleOpenModal()} className="flex items-center bg-amber-800 text-white px-4 py-2 rounded-lg font-semibold hover:bg-amber-900 transition-colors">
+        <button onClick={() => handleOpenModal()} className="flex items-center justify-center sm:justify-start bg-amber-800 text-white px-4 py-2 rounded-lg font-semibold hover:bg-amber-900 transition-colors">
           <PlusCircle size={20} className="mr-2" />
           Adicionar Produto
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-md overflow-hidden">
+      <div className="bg-white rounded-xl shadow-md overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -91,7 +93,9 @@ const Inventory: React.FC = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {products.map((product) => (
+            {loading ? (
+              <tr><td colSpan={5} className="text-center py-10">Carregando...</td></tr>
+            ) : products.map((product) => (
               <tr key={product.id}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{product.name}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{product.category}</td>
@@ -104,8 +108,8 @@ const Inventory: React.FC = () => {
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <button onClick={() => handleOpenModal(product)} className="text-amber-600 hover:text-amber-900 mr-4"><Edit size={18} /></button>
-                  <button onClick={() => handleDelete(product.id)} className="text-red-600 hover:text-red-900"><Trash2 size={18} /></button>
+                  <button onClick={() => handleOpenModal(product)} className="text-amber-600 hover:text-amber-900 mr-4" aria-label={`Edit ${product.name}`}><Edit size={18} /></button>
+                  <button onClick={() => handleDelete(product.id)} className="text-red-600 hover:text-red-900" aria-label={`Delete ${product.name}`}><Trash2 size={18} /></button>
                 </td>
               </tr>
             ))}

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { getStaff, addStaff, updateStaff, deleteStaff } from '../services/apiService';
 import type { StaffMember } from '../types';
@@ -10,9 +9,12 @@ const Staff: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
   const [formState, setFormState] = useState({ name: '', commissionRate: '5' });
+  const [loading, setLoading] = useState(true);
 
-  const fetchStaff = useCallback(() => {
-    setStaffList(getStaff());
+  const fetchStaff = useCallback(async () => {
+    setLoading(true);
+    setStaffList(await getStaff());
+    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -42,7 +44,7 @@ const Staff: React.FC = () => {
     setFormState(prevState => ({ ...prevState, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const staffData = {
       name: formState.name,
@@ -50,32 +52,32 @@ const Staff: React.FC = () => {
     };
 
     if (editingStaff) {
-      updateStaff({ ...editingStaff, ...staffData });
+      await updateStaff({ ...editingStaff, ...staffData });
     } else {
-      addStaff(staffData);
+      await addStaff(staffData);
     }
     fetchStaff();
     handleCloseModal();
   };
 
-  const handleDelete = (staffId: string) => {
+  const handleDelete = async (staffId: string) => {
     if (window.confirm('Tem certeza que deseja excluir este atendente?')) {
-      deleteStaff(staffId);
+      await deleteStaff(staffId);
       fetchStaff();
     }
   };
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <h1 className="text-3xl font-bold text-gray-800">Equipe de Atendentes</h1>
-        <button onClick={() => handleOpenModal()} className="flex items-center bg-amber-800 text-white px-4 py-2 rounded-lg font-semibold hover:bg-amber-900 transition-colors">
+        <button onClick={() => handleOpenModal()} className="flex items-center justify-center sm:justify-start bg-amber-800 text-white px-4 py-2 rounded-lg font-semibold hover:bg-amber-900 transition-colors">
           <PlusCircle size={20} className="mr-2" />
           Adicionar Atendente
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-md overflow-hidden">
+      <div className="bg-white rounded-xl shadow-md overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -85,13 +87,15 @@ const Staff: React.FC = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {staffList.map((staff) => (
+            {loading ? (
+              <tr><td colSpan={3} className="text-center py-10">Carregando...</td></tr>
+            ) : staffList.map((staff) => (
               <tr key={staff.id}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{staff.name}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{staff.commissionRate}%</td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <button onClick={() => handleOpenModal(staff)} className="text-amber-600 hover:text-amber-900 mr-4"><Edit size={18} /></button>
-                  <button onClick={() => handleDelete(staff.id)} className="text-red-600 hover:text-red-900"><Trash2 size={18} /></button>
+                  <button onClick={() => handleOpenModal(staff)} className="text-amber-600 hover:text-amber-900 mr-4" aria-label={`Edit ${staff.name}`}><Edit size={18} /></button>
+                  <button onClick={() => handleDelete(staff.id)} className="text-red-600 hover:text-red-900" aria-label={`Delete ${staff.name}`}><Trash2 size={18} /></button>
                 </td>
               </tr>
             ))}
