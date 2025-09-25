@@ -1,29 +1,29 @@
-// FIX: The original named import for 'firebase/app' was causing errors where members like
-// 'initializeApp' were not found. Changed to a wildcard import to resolve potential
-// module resolution issues.
-import * as firebase from "firebase/app";
+// FIX: Changed to a namespace import to solve module resolution errors.
+import * as firebaseApp from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
-// --- ATENÇÃO ---
-// Substitua o objeto de configuração abaixo pelas credenciais do SEU projeto Firebase.
-// Você pode encontrá-las no Console do Firebase em:
-// Configurações do projeto > Geral > Seus apps > App da Web > Configuração e instalação do SDK
+// --- ATENÇÃO: AÇÃO NECESSÁRIA ---
+// 1. Crie um projeto no Firebase: https://console.firebase.google.com/
+// 2. Vá para "Configurações do projeto" > "Geral".
+// 3. Em "Seus apps", crie um novo "App da Web" (ícone </>).
+// 4. Copie o objeto `firebaseConfig` fornecido e cole-o aqui, substituindo o de exemplo.
+// 5. Vá para "Firestore Database" no menu à esquerda, crie um banco de dados e, em "Regras", 
+//    configure para permitir leitura/escrita (para testes, use `allow read, write: if true;`).
 const firebaseConfig = {
-  apiKey: "AIzaSyDsi6VpfhLQW8UWgAp5c4TRV7vqOkDyauU",
-  authDomain: "stingressos-e0a5f.firebaseapp.com",
-  projectId: "stingressos-e0a5f",
-  storageBucket: "stingressos-e0a5f.firebasestorage.app",
-  messagingSenderId: "424186734009",
-  appId: "1:424186734009:web:c4f601ce043761cd784268",
-  measurementId: "G-M30E0D9TP2"
+  apiKey: "YOUR_API_KEY", // SUBSTITUA com sua chave
+  authDomain: "your-project-id.firebaseapp.com", // SUBSTITUA com seu domínio
+  projectId: "your-project-id", // SUBSTITUA com seu ID de projeto
+  storageBucket: "your-project-id.appspot.com", // SUBSTITUA com seu bucket
+  messagingSenderId: "your-sender-id", // SUBSTITUA com seu ID de remetente
+  appId: "your-app-id", // SUBSTITUA com seu ID de aplicativo
 };
 
 
-// Inicializa o Firebase, evitando reinicializações
-// FIX: Updated function calls to use the 'firebase' namespace from the wildcard import.
-const app = !firebase.getApps().length ? firebase.initializeApp(firebaseConfig) : firebase.getApp();
+// Inicializa o Firebase usando a sintaxe modular v9, evitando reinicializações.
+// FIX: Use functions from the namespace import to fix the module resolution error.
+const app = firebaseApp.getApps().length === 0 ? firebaseApp.initializeApp(firebaseConfig) : firebaseApp.getApp();
 
-// Inicializa o Cloud Firestore e obtém uma referência para o serviço
+// Obtém uma referência para o serviço do Firestore.
 const db = getFirestore(app);
 
 export { db };
