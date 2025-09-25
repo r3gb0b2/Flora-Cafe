@@ -1,17 +1,4 @@
-import { db } from './firebase';
-import { 
-    collection, 
-    getDocs, 
-    getDoc, 
-    doc, 
-    addDoc, 
-    updateDoc, 
-    deleteDoc, 
-    writeBatch, 
-    runTransaction,
-    Timestamp,
-} from 'firebase/firestore';
-import type { QuerySnapshot, QueryDocumentSnapshot } from 'firebase/firestore';
+import { db, firebase } from './firebase';
 import { INITIAL_PRODUCTS, INITIAL_STAFF, INITIAL_TABLES } from '../constants';
 import type { Product, StaffMember, CafeTable, Sale, OrderItem } from '../types';
 
@@ -21,37 +8,37 @@ const collections = {
   tables: 'tables',
   sales: 'sales',
   metadata: 'metadata'
-}
+};
 
 // Helper to convert Firestore snapshot to array
-const snapshotToArray = <T>(snapshot: QuerySnapshot): T[] => {
-    return snapshot.docs.map((doc: QueryDocumentSnapshot) => ({ id: doc.id, ...doc.data() })) as T[];
+const snapshotToArray = <T>(snapshot: firebase.firestore.QuerySnapshot): T[] => {
+    return snapshot.docs.map((doc: firebase.firestore.QueryDocumentSnapshot) => ({ id: doc.id, ...doc.data() })) as T[];
 }
 
 export const initializeData = async () => {
-    const metadataRef = doc(db, collections.metadata, 'initialData');
-    const metadataSnap = await getDoc(metadataRef);
+    const metadataRef = db.collection(collections.metadata).doc('initialData');
+    const metadataSnap = await metadataRef.get();
 
-    if (metadataSnap.exists() && metadataSnap.data()?.seeded) {
+    if (metadataSnap.exists && metadataSnap.data()?.seeded) {
         console.log("Database already seeded.");
         return;
     }
 
     console.log("Seeding initial data into Firestore...");
-    const batch = writeBatch(db);
+    const batch = db.batch();
 
     INITIAL_PRODUCTS.forEach(product => {
-        const docRef = doc(collection(db, collections.products));
+        const docRef = db.collection(collections.products).doc();
         batch.set(docRef, { ...product, id: docRef.id });
     });
 
     INITIAL_STAFF.forEach(staff => {
-        const docRef = doc(collection(db, collections.staff));
+        const docRef = db.collection(collections.staff).doc();
         batch.set(docRef, { ...staff, id: docRef.id });
     });
     
     INITIAL_TABLES.forEach(table => {
-        const docRef = doc(collection(db, collections.tables));
+        const docRef = db.collection(collections.tables).doc();
         batch.set(docRef, { ...table, id: docRef.id });
     });
     
@@ -64,91 +51,91 @@ export const initializeData = async () => {
 
 // Product API
 export const getProducts = async (): Promise<Product[]> => {
-    const productsCollection = collection(db, collections.products);
-    const snapshot = await getDocs(productsCollection);
+    const productsCollection = db.collection(collections.products);
+    const snapshot = await productsCollection.get();
     return snapshotToArray<Product>(snapshot);
 };
 
 export const addProduct = async (product: Omit<Product, 'id'>): Promise<Product> => {
-    const productsCollection = collection(db, collections.products);
-    const docRef = await addDoc(productsCollection, product);
+    const productsCollection = db.collection(collections.products);
+    const docRef = await productsCollection.add(product);
     return { ...product, id: docRef.id };
 };
 
 export const updateProduct = async (updatedProduct: Product): Promise<Product> => {
     const { id, ...productData } = updatedProduct;
-    const docRef = doc(db, collections.products, id);
-    await updateDoc(docRef, productData);
+    const docRef = db.collection(collections.products).doc(id);
+    await docRef.update(productData);
     return updatedProduct;
 };
 
 export const deleteProduct = async (productId: string): Promise<void> => {
-    const docRef = doc(db, collections.products, productId);
-    await deleteDoc(docRef);
+    const docRef = db.collection(collections.products).doc(productId);
+    await docRef.delete();
 };
 
 // Staff API
 export const getStaff = async (): Promise<StaffMember[]> => {
-    const staffCollection = collection(db, collections.staff);
-    const snapshot = await getDocs(staffCollection);
+    const staffCollection = db.collection(collections.staff);
+    const snapshot = await staffCollection.get();
     return snapshotToArray<StaffMember>(snapshot);
 };
 
 export const addStaff = async (staff: Omit<StaffMember, 'id'>): Promise<StaffMember> => {
-    const staffCollection = collection(db, collections.staff);
-    const docRef = await addDoc(staffCollection, staff);
+    const staffCollection = db.collection(collections.staff);
+    const docRef = await staffCollection.add(staff);
     return { ...staff, id: docRef.id };
 };
 
 export const updateStaff = async (updatedStaff: StaffMember): Promise<StaffMember> => {
     const { id, ...staffData } = updatedStaff;
-    const docRef = doc(db, collections.staff, id);
-    await updateDoc(docRef, staffData);
+    const docRef = db.collection(collections.staff).doc(id);
+    await docRef.update(staffData);
     return updatedStaff;
 };
 
 export const deleteStaff = async (staffId: string): Promise<void> => {
-    const docRef = doc(db, collections.staff, staffId);
-    await deleteDoc(docRef);
+    const docRef = db.collection(collections.staff).doc(staffId);
+    await docRef.delete();
 };
 
 // Table API
 export const getTables = async (): Promise<CafeTable[]> => {
-    const tablesCollection = collection(db, collections.tables);
-    const snapshot = await getDocs(tablesCollection);
+    const tablesCollection = db.collection(collections.tables);
+    const snapshot = await tablesCollection.get();
     return snapshotToArray<CafeTable>(snapshot);
 };
 
 export const updateTableStatus = async (tableId: string, status: CafeTable['status'], orderId: string | null = null): Promise<void> => {
-    const docRef = doc(db, collections.tables, tableId);
-    await updateDoc(docRef, { status, currentOrderId: orderId });
+    const docRef = db.collection(collections.tables).doc(tableId);
+    await docRef.update({ status, currentOrderId: orderId });
 };
 
 // Sales API
 export const getSales = async (): Promise<Sale[]> => {
-    const salesCollection = collection(db, collections.sales);
-    const snapshot = await getDocs(salesCollection);
+    const salesCollection = db.collection(collections.sales);
+    const snapshot = await salesCollection.get();
     const salesData = snapshotToArray<any>(snapshot); // Use 'any' to handle the raw Firestore data
     
     // Convert Firestore Timestamps to ISO strings to prevent runtime errors
     return salesData.map((sale: any) => ({
         ...sale,
-        date: sale.date instanceof Timestamp ? sale.date.toDate().toISOString() : sale.date,
+        date: sale.date instanceof firebase.firestore.Timestamp ? sale.date.toDate().toISOString() : sale.date,
     })) as Sale[];
 };
 
 export const addSale = async (saleData: Omit<Sale, 'id' | 'date' | 'total'>): Promise<Sale> => {
   try {
-    const newSale = await runTransaction(db, async (transaction) => {
+    const newSale = await db.runTransaction(async (transaction) => {
       let total = 0;
       const itemsWithPrice: OrderItem[] = [];
 
       // Process all product updates within the transaction
       for (const item of saleData.items) {
-        const productRef = doc(db, collections.products, item.productId);
+        const productRef = db.collection(collections.products).doc(item.productId);
         const productDoc = await transaction.get(productRef);
 
-        if (!productDoc.exists()) {
+        if (!productDoc.exists) {
           throw new Error(`Product with id ${item.productId} not found`);
         }
         
@@ -165,25 +152,36 @@ export const addSale = async (saleData: Omit<Sale, 'id' | 'date' | 'total'>): Pr
         transaction.update(productRef, { stock: newStock });
       }
 
-      // Final sale object
-      const saleToCreate: Omit<Sale, 'id'> = {
+      const saleDate = new Date();
+      // Final sale object for Firestore
+      const saleToCreate = {
         ...saleData,
         items: itemsWithPrice,
-        date: new Date().toISOString(),
+        date: firebase.firestore.Timestamp.fromDate(saleDate),
         total,
       };
 
       // Add the sale document
-      const saleRef = doc(collection(db, collections.sales));
+      const saleRef = db.collection(collections.sales).doc();
       transaction.set(saleRef, saleToCreate);
 
       // Update table status
-      const tableRef = doc(db, collections.tables, saleData.tableId);
+      const tableRef = db.collection(collections.tables).doc(saleData.tableId);
       transaction.update(tableRef, { status: 'available', currentOrderId: null });
 
-      return { ...saleToCreate, id: saleRef.id };
+      // Return an object that matches the `Sale` type (with date as string)
+      return {
+        ...saleData,
+        items: itemsWithPrice,
+        total,
+        date: saleDate.toISOString(),
+        id: saleRef.id,
+      };
     });
     
+    if (!newSale) {
+        throw new Error("A transação falhou e não retornou uma nova venda.");
+    }
     return newSale;
 
   } catch (e) {

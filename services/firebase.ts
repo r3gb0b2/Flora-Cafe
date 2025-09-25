@@ -1,8 +1,5 @@
-// FIX: Use Firebase v8 compat layer for app initialization to resolve import errors.
-// This is often necessary in projects with mixed or older Firebase dependencies.
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/firestore';
-import { getFirestore } from 'firebase/firestore';
 
 // --- ATENÇÃO: AÇÃO NECESSÁRIA ---
 // 1. Crie um projeto no Firebase: https://console.firebase.google.com/
@@ -20,11 +17,12 @@ const firebaseConfig = {
   appId: "1:356514736805:web:95c8230cc27d1b857a7b4c"
 };
 
+// Initialize Firebase
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
 
-// Inicializa o Firebase de forma segura, evitando reinicialização, usando a API de compatibilidade.
-const app = firebase.apps.length === 0 ? firebase.initializeApp(firebaseConfig) : firebase.app();
+// Get a reference to the Firestore service.
+const db = firebase.firestore();
 
-// Obtém uma referência para o serviço do Firestore.
-const db = getFirestore(app);
-
-export { db };
+export { db, firebase };
