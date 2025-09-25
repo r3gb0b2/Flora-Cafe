@@ -1,3 +1,4 @@
+
 import { db } from './firebase';
 import {
   collection,
@@ -43,18 +44,18 @@ export const initializeData = async () => {
     const batch = writeBatch(db);
 
     INITIAL_PRODUCTS.forEach(product => {
-        const docRef = doc(collection(db, collections.products));
-        batch.set(docRef, { ...product, id: docRef.id });
+        const docRef = doc(db, collections.products, product.id);
+        batch.set(docRef, product);
     });
 
     INITIAL_STAFF.forEach(staff => {
-        const docRef = doc(collection(db, collections.staff));
-        batch.set(docRef, { ...staff, id: docRef.id });
+        const docRef = doc(db, collections.staff, staff.id);
+        batch.set(docRef, staff);
     });
     
     INITIAL_TABLES.forEach(table => {
-        const docRef = doc(collection(db, collections.tables));
-        batch.set(docRef, { ...table, id: docRef.id });
+        const docRef = doc(db, collections.tables, table.id);
+        batch.set(docRef, table);
     });
     
     batch.set(metadataRef, { seeded: true, seededAt: Timestamp.fromDate(new Date()) });
@@ -72,9 +73,10 @@ export const getProducts = async (): Promise<Product[]> => {
 };
 
 export const addProduct = async (product: Omit<Product, 'id'>): Promise<Product> => {
-    const productsCollection = collection(db, collections.products);
-    const docRef = await addDoc(productsCollection, product);
-    return { ...product, id: docRef.id };
+    const docRef = doc(collection(db, collections.products));
+    const newProduct = { ...product, id: docRef.id };
+    await setDoc(docRef, newProduct);
+    return newProduct;
 };
 
 export const updateProduct = async (updatedProduct: Product): Promise<Product> => {
@@ -97,9 +99,10 @@ export const getStaff = async (): Promise<StaffMember[]> => {
 };
 
 export const addStaff = async (staff: Omit<StaffMember, 'id'>): Promise<StaffMember> => {
-    const staffCollection = collection(db, collections.staff);
-    const docRef = await addDoc(staffCollection, staff);
-    return { ...staff, id: docRef.id };
+    const docRef = doc(collection(db, collections.staff));
+    const newStaff = { ...staff, id: docRef.id };
+    await setDoc(docRef, newStaff);
+    return newStaff;
 };
 
 export const updateStaff = async (updatedStaff: StaffMember): Promise<StaffMember> => {
