@@ -1,125 +1,177 @@
+// Fix: Import firebase v8 SDK for types and side-effects.
+import { db } from './firebase';
+import firebase from 'firebase/app';
+import 'firebase/firestore';
 import { INITIAL_PRODUCTS, INITIAL_STAFF, INITIAL_TABLES } from '../constants';
 import type { Product, StaffMember, CafeTable, Sale, OrderItem } from '../types';
 
-const FAKE_LATENCY = 200; // ms
+const collections = {
+  products: 'products',
+  staff: 'staff',
+  tables: 'tables',
+  sales: 'sales',
+  metadata: 'metadata'
+}
 
-const get = <T,>(key: string, fallback: T): Promise<T> => {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      const stored = localStorage.getItem(key);
-      resolve(stored ? JSON.parse(stored) : fallback);
-    }, FAKE_LATENCY);
-  });
+// Helper to convert Firestore snapshot to array
+// Fix: Corrected type signature from DocumentData to firebase.firestore.QuerySnapshot
+const snapshotToArray = <T>(snapshot: firebase.firestore.QuerySnapshot): T[] => {
+    return snapshot.docs.map((doc: firebase.firestore.QueryDocumentSnapshot) => ({ id: doc.id, ...doc.data() })) as T[];
+}
+
+// Fix: Refactored to use Firebase v8 SDK
+export const initializeData = async () => {
+    const metadataRef = db.collection(collections.metadata).doc('initialData');
+    const metadataSnap = await metadataRef.get();
+
+    if (metadataSnap.exists && metadataSnap.data()?.seeded) {
+        console.log("Database already seeded.");
+        return;
+    }
+
+    console.log("Seeding initial data into Firestore...");
+    const batch = db.batch();
+
+    INITIAL_PRODUCTS.forEach(product => {
+        const docRef = db.collection(collections.products).doc();
+        batch.set(docRef, { ...product, id: docRef.id });
+    });
+
+    INITIAL_STAFF.forEach(staff => {
+        const docRef = db.collection(collections.staff).doc();
+        batch.set(docRef, { ...staff, id: docRef.id });
+    });
+    
+    INITIAL_TABLES.forEach(table => {
+        const docRef = db.collection(collections.tables).doc();
+        batch.set(docRef, { ...table, id: docRef.id });
+    });
+    
+    batch.set(metadataRef, { seeded: true, seededAt: new Date().toISOString() });
+    
+    await batch.commit();
+    console.log("Initial data seeded successfully.");
 };
 
-const set = <T,>(key: string, value: T): Promise<void> => {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      localStorage.setItem(key, JSON.stringify(value));
-      resolve();
-    }, FAKE_LATENCY);
-  });
-};
-
-
-export const initializeData = () => {
-  if (!localStorage.getItem('products')) {
-    localStorage.setItem('products', JSON.stringify(INITIAL_PRODUCTS));
-  }
-  if (!localStorage.getItem('staff')) {
-    localStorage.setItem('staff', JSON.stringify(INITIAL_STAFF));
-  }
-  if (!localStorage.getItem('tables')) {
-    localStorage.setItem('tables', JSON.stringify(INITIAL_TABLES));
-  }
-  if (!localStorage.getItem('sales')) {
-    localStorage.setItem('sales', JSON.stringify([]));
-  }
-};
 
 // Product API
-export const getProducts = (): Promise<Product[]> => get('products', []);
+// Fix: Refactored to use Firebase v8 SDK
+export const getProducts = async (): Promise<Product[]> => {
+    const snapshot = await db.collection(collections.products).get();
+    return snapshotToArray<Product>(snapshot);
+};
+// Fix: Refactored to use Firebase v8 SDK
 export const addProduct = async (product: Omit<Product, 'id'>): Promise<Product> => {
-  const products = await get<Product[]>('products', []);
-  const newProduct: Product = { ...product, id: `prod-${Date.now()}` };
-  await set('products', [...products, newProduct]);
-  return newProduct;
+    const docRef = await db.collection(collections.products).add(product);
+    return { ...product, id: docRef.id };
 };
+// Fix: Refactored to use Firebase v8 SDK
 export const updateProduct = async (updatedProduct: Product): Promise<Product> => {
-  const products = await get<Product[]>('products', []);
-  const newProducts = products.map(p => p.id === updatedProduct.id ? updatedProduct : p);
-  await set('products', newProducts);
-  return updatedProduct;
+    const docRef = db.collection(collections.products).doc(updatedProduct.id);
+    await docRef.update({ ...updatedProduct });
+    return updatedProduct;
 };
+// Fix: Refactored to use Firebase v8 SDK
 export const deleteProduct = async (productId: string): Promise<void> => {
-  const products = await get<Product[]>('products', []);
-  await set('products', products.filter(p => p.id !== productId));
+    await db.collection(collections.products).doc(productId).delete();
 };
 
 // Staff API
-export const getStaff = (): Promise<StaffMember[]> => get('staff', []);
-export const addStaff = async (staff: Omit<StaffMember, 'id'>): Promise<StaffMember> => {
-  const staffList = await get<StaffMember[]>('staff', []);
-  const newStaff: StaffMember = { ...staff, id: `staff-${Date.now()}` };
-  await set('staff', [...staffList, newStaff]);
-  return newStaff;
+// Fix: Refactored to use Firebase v8 SDK
+export const getStaff = async (): Promise<StaffMember[]> => {
+    const snapshot = await db.collection(collections.staff).get();
+    return snapshotToArray<StaffMember>(snapshot);
 };
+// Fix: Refactored to use Firebase v8 SDK
+export const addStaff = async (staff: Omit<StaffMember, 'id'>): Promise<StaffMember> => {
+    const docRef = await db.collection(collections.staff).add(staff);
+    return { ...staff, id: docRef.id };
+};
+// Fix: Refactored to use Firebase v8 SDK
 export const updateStaff = async (updatedStaff: StaffMember): Promise<StaffMember> => {
-    const staffList = await get<StaffMember[]>('staff', []);
-    const newStaffList = staffList.map(s => s.id === updatedStaff.id ? updatedStaff : s);
-    await set('staff', newStaffList);
+    const docRef = db.collection(collections.staff).doc(updatedStaff.id);
+    await docRef.update({ ...updatedStaff });
     return updatedStaff;
 };
+// Fix: Refactored to use Firebase v8 SDK
 export const deleteStaff = async (staffId: string): Promise<void> => {
-    const staffList = await get<StaffMember[]>('staff', []);
-    await set('staff', staffList.filter(s => s.id !== staffId));
+    await db.collection(collections.staff).doc(staffId).delete();
 };
 
-
 // Table API
-export const getTables = (): Promise<CafeTable[]> => get('tables', []);
+// Fix: Refactored to use Firebase v8 SDK
+export const getTables = async (): Promise<CafeTable[]> => {
+    const snapshot = await db.collection(collections.tables).get();
+    return snapshotToArray<CafeTable>(snapshot);
+};
+// Fix: Refactored to use Firebase v8 SDK
 export const updateTableStatus = async (tableId: string, status: CafeTable['status'], orderId: string | null = null): Promise<void> => {
-  const tables = await get<CafeTable[]>('tables', []);
-  const newTables = tables.map(t => t.id === tableId ? { ...t, status, currentOrderId: orderId } : t);
-  await set('tables', newTables);
+    const docRef = db.collection(collections.tables).doc(tableId);
+    await docRef.update({ status, currentOrderId: orderId });
 };
 
 // Sales API
-export const getSales = (): Promise<Sale[]> => get('sales', []);
+// Fix: Refactored to use Firebase v8 SDK
+export const getSales = async (): Promise<Sale[]> => {
+    const snapshot = await db.collection(collections.sales).get();
+    return snapshotToArray<Sale>(snapshot);
+};
+
+// Fix: Refactored to use Firebase v8 SDK
 export const addSale = async (saleData: Omit<Sale, 'id' | 'date' | 'total'>): Promise<Sale> => {
-  const sales = await get<Sale[]>('sales', []);
-  const products = await get<Product[]>('products', []);
-  
-  let total = 0;
-  const itemsWithPrice = saleData.items.map(item => {
-    const product = products.find(p => p.id === item.productId);
-    if (!product) throw new Error(`Product with id ${item.productId} not found`);
-    const priceAtSale = product.price;
-    total += priceAtSale * item.quantity;
-    return { ...item, priceAtSale };
-  });
+  try {
+    const newSale = await db.runTransaction(async (transaction) => {
+      let total = 0;
+      const itemsWithPrice: OrderItem[] = [];
 
-  const newSale: Sale = {
-    ...saleData,
-    items: itemsWithPrice,
-    id: `sale-${Date.now()}`,
-    date: new Date().toISOString(),
-    total,
-  };
-  
-  // Update stock
-  const updatedProducts = products.map(p => {
-    const soldItem = newSale.items.find(item => item.productId === p.id);
-    if (soldItem) {
-      return { ...p, stock: p.stock - soldItem.quantity };
+      // Process all product updates within the transaction
+      for (const item of saleData.items) {
+        const productRef = db.collection(collections.products).doc(item.productId);
+        const productDoc = await transaction.get(productRef);
+
+        if (!productDoc.exists) {
+          throw new Error(`Product with id ${item.productId} not found`);
+        }
+        
+        const product = productDoc.data() as Product;
+        const newStock = product.stock - item.quantity;
+        if (newStock < 0) {
+            throw new Error(`Estoque insuficiente para o produto: ${product.name}`);
+        }
+
+        const priceAtSale = product.price;
+        total += priceAtSale * item.quantity;
+        itemsWithPrice.push({ ...item, priceAtSale });
+        
+        transaction.update(productRef, { stock: newStock });
+      }
+
+      // Final sale object
+      const saleToCreate: Omit<Sale, 'id'> = {
+        ...saleData,
+        items: itemsWithPrice,
+        date: new Date().toISOString(),
+        total,
+      };
+
+      // Add the sale document
+      const saleRef = db.collection(collections.sales).doc();
+      transaction.set(saleRef, saleToCreate);
+
+      // Update table status
+      const tableRef = db.collection(collections.tables).doc(saleData.tableId);
+      transaction.update(tableRef, { status: 'available', currentOrderId: null });
+
+      return { ...saleToCreate, id: saleRef.id };
+    });
+    
+    return newSale;
+
+  } catch (e) {
+    console.error("Transaction failed: ", e);
+    if (e instanceof Error) {
+        throw e;
     }
-    return p;
-  });
-  await set('products', updatedProducts);
-
-  // Update table status
-  await updateTableStatus(newSale.tableId, 'available', null);
-
-  await set('sales', [...sales, newSale]);
-  return newSale;
+    throw new Error("Ocorreu um erro ao finalizar a venda.");
+  }
 };

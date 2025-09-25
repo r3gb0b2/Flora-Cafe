@@ -31,12 +31,34 @@ const pageIcons: { [key in Page]: React.ForwardRefExoticComponent<Omit<LucidePro
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
-    initializeData();
+    const init = async () => {
+      try {
+        await initializeData();
+      } catch (error) {
+        console.error("Failed to initialize database:", error);
+        // Here you could show an error message to the user
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+    init();
   }, []);
 
   const CurrentPageComponent = pageComponents[currentPage];
+
+  if (isInitializing) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-gray-100">
+        <div className="flex flex-col items-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-amber-800"></div>
+            <p className="mt-4 text-gray-600">Conectando ao banco de dados...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-gray-100 font-sans">
